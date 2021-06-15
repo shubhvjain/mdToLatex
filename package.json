@@ -1,0 +1,19 @@
+{
+  "name": "mdtolatex",
+  "version": "1.0.0",
+  "description": "Converting markdown to LaTEX using marked.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shubhvjain/mdToLatex.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shubhvjain/mdToLatex/issues"
+  },
+  "homepage": "https://github.com/shubhvjain/mdToLatex#readme"
+}
