@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/shubhvjain/mdToLatex/issues"
   },
-  "homepage": "https://github.com/shubhvjain/mdToLatex#readme"
+  "homepage": "https://github.com/shubhvjain/mdToLatex#readme",
+  "dependencies": {
+    "marked": "2.0.7"
+  }
 }
