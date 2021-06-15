@@ -99,12 +99,9 @@ linkcolor=blue}` },
         let parts = []
         tokens.map(item => {
             if (parsers[item.type]) {
-                //console.log(parsers[item.type](item))
                 parts.push(parsers[item.type](item))
             }
         })
-        //console.log(parts)
-        //  console.log()
         let packages = packagesRequired.map(pkg => { 
             let pk =  `\\usepackage{${pkg.name}} \n`
             if(pkg.config){
@@ -112,7 +109,6 @@ linkcolor=blue}` },
             }
             return pk
          }).join("")
-
         let doc = `\\documentclass[a4paper,12pt]{article} 
 ${packages}
 \\begin{document}
@@ -120,7 +116,7 @@ ${packages}
 ${parts.map(pt => { return pt.text }).join("\n")}
 
 \\end{document}`
-        return doc
+        return {doc:doc}
     } catch (error) {
         console.log(error)
     }
@@ -163,9 +159,7 @@ more ;
 	- sample 2
 2. item [list](ha) **2** ![sample](image)
 `
-
-console.log(toLatex(sample))
-
+// console.log(toLatex(sample))
 
 module.exports = {
     toLatex: toLatex
