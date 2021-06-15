@@ -6,7 +6,7 @@ let textParser = {
         return { text: itm.text }
     },
     "strong": (itm, options = {}) => {
-        return { text: ` \\textbf{${itm.text}} ` }
+        return { text:  `\\textbf{${itm.text}} ` }
     },
     "link": (itm, options = {}) => {
         let url = itm.href
@@ -24,7 +24,12 @@ let textParser = {
         return { text: `\\verb|${itm.text}|` }
     },
     "image": (itm, options = {}) => {
-        return {text:""}
+        let fig= `
+\\begin{figure}
+    \\includegraphics{${itm.href}}
+    \\caption{${itm.text}}
+\\end{figure}`
+        return {text:fig,image:itm.href}
     }
 }
 
@@ -38,9 +43,13 @@ let parsers = {
     paragraph: (itm, options = {}) => {
         let para = itm.tokens.map(it=>{return textParser[it.type](it)})
         // console.log(para)
-        return { text: itm.text }
+        return { text:para.map(p=>{return p.text}).join("") }
     },
     list: (itm, options = {}) => {
+        let processTextTokens = (tkns)=>{
+            let pa = tkns.map(tk=>{return textParser[tk.type](tk)})
+            return pa.map(p=>{return p.text}).join("")
+        }
         let processList = (obj) => {
             let command = "itemize"
             if (obj.ordered) { command = "enumerate" }
@@ -50,7 +59,7 @@ let parsers = {
                 item.tokens.map(tkn => {
                     if (tkn.type == "text") {
                         // normal text , include it after the item keyword
-                        currItem += tkn.text
+                        currItem += processTextTokens(tkn.tokens)
                     }
                     if (tkn.type == "list") {
                         // list needs to be processsed recuursively 
@@ -76,10 +85,16 @@ let parsers = {
 let toLatex = (mdString, options = {}) => {
     try {
         let packagesRequired = [
-            { name: "hyperref" },
+            { name: "hyperref",
+        "config":`\\hypersetup{
+colorlinks=true,
+urlcolor=blue,
+linkcolor=blue}` },
             { name: "listings" },
-            { name: "csquotes" }
+            { name: "csquotes" },
+            {name:"graphicx"}
         ]
+
         let tokens = marked.lexer(mdString)
         let parts = []
         tokens.map(item => {
@@ -90,9 +105,16 @@ let toLatex = (mdString, options = {}) => {
         })
         //console.log(parts)
         //  console.log()
-        let doc = `\\documentclass[a4paper,12pt]{article} 
+        let packages = packagesRequired.map(pkg => { 
+            let pk =  `\\usepackage{${pkg.name}} \n`
+            if(pkg.config){
+                pk += "\n"+pkg.config+"\n"
+            }
+            return pk
+         }).join("")
 
-${packagesRequired.map(pkg => { return `\\usepackage{${pkg.name}} \n` }).join("")}
+        let doc = `\\documentclass[a4paper,12pt]{article} 
+${packages}
 \\begin{document}
 
 ${parts.map(pt => { return pt.text }).join("\n")}
@@ -139,9 +161,7 @@ more ;
 1. item list 1
 	- sample 1
 	- sample 2
-2. item list 2
-
-
+2. item [list](ha) **2** ![sample](image)
 `
 
 console.log(toLatex(sample))
