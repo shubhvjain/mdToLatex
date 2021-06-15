@@ -94,7 +94,6 @@ linkcolor=blue}` },
             { name: "csquotes" },
             {name:"graphicx"}
         ]
-
         let tokens = marked.lexer(mdString)
         let parts = []
         tokens.map(item => {
@@ -109,58 +108,15 @@ linkcolor=blue}` },
             }
             return pk
          }).join("")
-        let doc = `\\documentclass[a4paper,12pt]{article} 
-${packages}
-\\begin{document}
-
-${parts.map(pt => { return pt.text }).join("\n")}
-
-\\end{document}`
-        return {doc:doc}
+         let data = {
+             content:parts.map(pt => { return pt.text }).join("\n"),
+             packages:packages
+         }
+        return data
     } catch (error) {
         console.log(error)
     }
 }
-
-let sample = `# Title of the article 
-## Subtitle of the article 
-this is another paragraph 
-this is another paragraph with a list
-- sample list 1
-- sammple list 2
-- sample list 3
-
-> sample
-
-numbered list
-1. sample
-2. sample 3
-3. sample4
-
-**this** para [contains](link) inline ~~things~~. this will be used here  \`code here\` ![img](somethinghere)
-
-![sample](/sample)
-
-\`\`\`
-some code here
-then more here
-more ;
-\`\`\`
-
-- list 1
-	- sub list 1
-		- item 1
-			1. sample 1
-            2. sample 2
-- list 2
-
-1. item list 1
-	- sample 1
-	- sample 2
-2. item [list](ha) **2** ![sample](image)
-`
-// console.log(toLatex(sample))
-
 module.exports = {
     toLatex: toLatex
 }
