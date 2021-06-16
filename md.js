@@ -1,5 +1,9 @@
 const marked = require("marked")
 
+let genImageName = (text)=>{
+    return `image_${ Math.floor((Math.random() * 10000) + 1)}`
+}
+
 let textParser = {
     "text": (itm, options = {}) => {
         // todo look for math here 
@@ -24,12 +28,19 @@ let textParser = {
         return { text: `\\verb|${itm.text}|` }
     },
     "image": (itm, options = {}) => {
+        let imgName = genImageName(itm.text)
         let fig= `
 \\begin{figure}
-    \\includegraphics{${itm.href}}
+    \\includegraphics{${imgName}}
     \\caption{${itm.text}}
 \\end{figure}`
-        return {text:fig,image:itm.href}
+        return {
+            text:fig,
+            image:{
+                link:itm.href,
+                name:imgName
+            }
+        }
     }
 }
 
@@ -43,7 +54,15 @@ let parsers = {
     paragraph: (itm, options = {}) => {
         let para = itm.tokens.map(it=>{return textParser[it.type](it)})
         // console.log(para)
-        return { text:para.map(p=>{return p.text}).join("") }
+        let pText = []
+        let imgArr = []
+        para.map(p=>{
+            pText.push(p.text)
+            if(p.image){
+                imgArr.push(image)
+            }
+        })
+        return { text:pText.join(""),images:imgArr }
     },
     list: (itm, options = {}) => {
         let processTextTokens = (tkns)=>{
@@ -108,9 +127,12 @@ linkcolor=blue}` },
             }
             return pk
          }).join("")
+         let imgArr = []
+         parts.map(pt => { if(pt.image){imgArr.push(pt.image)} })
          let data = {
              content:parts.map(pt => { return pt.text }).join("\n"),
-             packages:packages
+             packages:packages,
+             images:imgArr
          }
         return data
     } catch (error) {
