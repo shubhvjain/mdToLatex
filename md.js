@@ -1,4 +1,5 @@
 const marked = require("marked")
+var lescape = require('escape-latex');
 
 let genImageName = (text)=>{
     return `image_${ Math.floor((Math.random() * 10000) + 1)}`
@@ -6,8 +7,25 @@ let genImageName = (text)=>{
 
 let textParser = {
     "text": (itm, options = {}) => {
-        // todo look for math here 
-        return { text: itm.text }
+        //console.log(itm.text)
+        let txt = itm.text
+        .replace("\\","\\textbackslash}")
+        .replace(/&amp;/g,"\\&")
+        .replace(/&lt;/gm,`\\textless`)
+        .replace(/&gt;/gm,`\\textgreater`)
+        .replace(/&quot;/g,'"')
+        .replace(/&apos;/g,"'")
+        .replace(/&#39;/g,"'")
+        .replace("%","\\%")
+        .replace("{","\\{")
+        .replace("}","\\}")
+        .replace("^","\\textasciicircum")
+        .replace("~","\\textasciitilde")
+        .replace("#","\\#")
+        .replace("_","\\_")
+        //   $ 
+        // console.log(txt)
+        return { text: txt }
     },
     "strong": (itm, options = {}) => {
         return { text:  `\\textbf{${itm.text}} ` }
@@ -41,6 +59,13 @@ let textParser = {
                 name:imgName
             }
         }
+    },
+    "escape":(itm,options={}) =>{
+        return {text:``}
+    },
+    "em":(itm,options={}) =>{
+        // todo modify this
+        return {text:`${itm.text}`}
     }
 }
 
@@ -58,9 +83,7 @@ let parsers = {
         let imgArr = []
         para.map(p=>{
             pText.push(p.text)
-            if(p.image){
-                imgArr.push(image)
-            }
+            if(p.image){imgArr.push(p.image)}
         })
         return { text:pText.join(""),images:imgArr }
     },
@@ -74,7 +97,7 @@ let parsers = {
             if (obj.ordered) { command = "enumerate" }
             let steps = ``
             obj.items.map(item => {
-                let currItem = `\\item `
+                let currItem = `  \\item `
                 item.tokens.map(tkn => {
                     if (tkn.type == "text") {
                         // normal text , include it after the item keyword
@@ -97,7 +120,10 @@ let parsers = {
         return { text: ["\\begin{displayquote}", '``' + itm.text + '``', "\\end{displayquote}"].join("\n") }
     },
     code: (itm, options = {}) => {
-        return { text: ["\\begin{lstlisting}", itm.text, "\\end{lstlisting}"].join("\n") }
+        return { text: ["\\begin{lstlisting}",itm.text, "\\end{lstlisting}"].join("\n") }
+    },
+    space:(itm,options={}) =>{
+        return {text:`\\newline`}
     }
 }
 
@@ -114,8 +140,10 @@ linkcolor=blue}` },
             {name:"graphicx"}
         ]
         let tokens = marked.lexer(mdString)
+       //  console.log(JSON.stringify(tokens,null,2))
         let parts = []
         tokens.map(item => {
+            // console.log(item.type)
             if (parsers[item.type]) {
                 parts.push(parsers[item.type](item))
             }
