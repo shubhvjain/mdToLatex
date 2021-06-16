@@ -1,5 +1,4 @@
 const marked = require("marked")
-var lescape = require('escape-latex');
 
 let genImageName = (text)=>{
     return `image_${ Math.floor((Math.random() * 10000) + 1)}`
@@ -66,6 +65,9 @@ let textParser = {
     "em":(itm,options={}) =>{
         // todo modify this
         return {text:`${itm.text}`}
+    },
+    "displayMath":(itm,options={})=>{
+        return itm.text
     }
 }
 
@@ -127,6 +129,23 @@ let parsers = {
     }
 }
 
+// const tokenizer = {
+//     paragraph(src) {
+//       const match = src.match(/\$\$(.*?)\$\$/);
+//       if (match) {
+//         return {
+//           type: 'displayMath',
+//           raw: match[0],
+//           text: match[1].trim()
+//         };
+//       }
+//       // return false to use original  tokenizer
+//       return false;
+//     }
+//   };
+  
+// marked.use({ tokenizer });
+
 let toLatex = (mdString, options = {}) => {
     try {
         let packagesRequired = [
@@ -140,7 +159,7 @@ linkcolor=blue}` },
             {name:"graphicx"}
         ]
         let tokens = marked.lexer(mdString)
-       //  console.log(JSON.stringify(tokens,null,2))
+        console.log(JSON.stringify(tokens,null,2))
         let parts = []
         tokens.map(item => {
             // console.log(item.type)
