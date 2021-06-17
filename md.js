@@ -8,18 +8,18 @@ let textParser = {
     "text": (itm, options = {}) => {
         //console.log(itm.text)
         let txt = itm.text
-            .replace("\\", "\\textbackslash}")
+            .replace("\\", "\\textbackslash ")
             .replace(/&amp;/g, "\\&")
-            .replace(/&lt;/gm, `\\textless`)
-            .replace(/&gt;/gm, `\\textgreater`)
+            .replace(/&lt;/gm, `\\textless `)
+            .replace(/&gt;/gm, `\\textgreater `)
             .replace(/&quot;/g, '"')
             .replace(/&apos;/g, "'")
             .replace(/&#39;/g, "'")
             .replace("%", "\\%")
             .replace("{", "\\{")
             .replace("}", "\\}")
-            .replace("^", "\\textasciicircum")
-            .replace("~", "\\textasciitilde")
+            .replace("^", "\\textasciicircum ")
+            .replace("~", "\\textasciitilde ")
             .replace("#", "\\#")
             .replace("_", "\\_")
         //   $ 
@@ -63,9 +63,18 @@ let textParser = {
         // todo modify this
         return { text: `${itm.text}` }
     },
-    "displayMath": (itm, options = {}) => {
-        return itm.text
-    },
+    // "displayMath": (itm, options = {}) => {
+    //     let txt = itm.text
+    //         .replace(/&amp;/g, "&")
+    //         .replace(/&lt;/gm, `<`)
+    //         .replace(/&gt;/gm, `>`)
+    //         .replace(/&quot;/g, '"')
+    //         .replace(/&apos;/g, "'")
+    //         .replace(/&#39;/g, "'")
+    //     console.log(txt)
+    //     return { text: txt }
+    //     // return itm.text
+    // },
     "br": (itm, options = {}) => {
         return ``
     }
@@ -129,25 +138,37 @@ let parsers = {
     },
     space: (itm, options = {}) => {
         return { text: `\\newline` }
-    }
+    },
+    displayMath: (itm, options = {}) => {
+        let txt = itm.text
+            .replace(/&amp;/g, "&")
+            .replace(/&lt;/gm, `<`)
+            .replace(/&gt;/gm, `>`)
+            .replace(/&quot;/g, '"')
+            .replace(/&apos;/g, "'")
+            .replace(/&#39;/g, "'")
+        console.log(txt)
+        return { text: `$$${txt}$$` }
+        // return itm.text
+    },
 }
 
-// const tokenizer = {
-//     paragraph(src) {
-//       const match = src.match(/\$\$(.*?)\$\$/);
-//       if (match) {
-//         return {
-//           type: 'displayMath',
-//           raw: match[0],
-//           text: match[1].trim()
-//         };
-//       }
-//       // return false to use original  tokenizer
-//       return false;
-//     }
-//   };
+const tokenizer = {
+    paragraph(src) {
+      const match = src.match(/\$\$(.*?)\$\$/);
+      if (match) {
+        return {
+          type: 'displayMath',
+          raw: match[0],
+          text: match[1].trim()
+        };
+      }
+      // return false to use original  tokenizer
+      return false;
+    }
+  };
 
-// marked.use({ tokenizer });
+marked.use({ tokenizer });
 
 let getRequiredPackages = () => {
     let packagesRequired = [
@@ -188,7 +209,7 @@ let toLatex = (mdString, options = {}) => {
                 parts.push(parsers[item.type](item,options))
             }
         })
-
+        // console.log(parts)
         let imgArr = []
         //  console.log(parts)
         parts.map(pt => {
