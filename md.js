@@ -4,10 +4,75 @@ let genImageName = (text) => {
     return `image_${Math.floor((Math.random() * 10000) + 1)}`
 }
 
+let escapeMath = (eq = "") => {
+    let eq1 = eq
+        .replace(/&amp;/g, "\\&")
+        .replace(/&lt;/gm, `\\textless `)
+        .replace(/&gt;/gm, `\\textgreater `)
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'")
+        .replace(/&#39;/g, "'")
+        .replace("%", "\\%")
+        .replace("~", "\\textasciitilde ")
+        .replace("#", "\\#")
+        // .replace("_", "\\_")
+    return eq1
+}
+
+let getInlineMath = (text) => {
+    let stack = []
+    let phrases = []
+    let found = false
+    for (let index = 0; index < text.length; index++) {
+        let char = text[index];
+        if (char == "$") {
+            if (found) {
+                if (text[index - 1] == "\\") { stack.push(char) }
+                else {
+                    let oriText = "$" + stack.join("") + "$"
+                    phrases.push({
+                        type: "inlineMath",
+                        origText: oriText,
+                        escText: escapeMath(oriText),
+                        id: "math" + Math.floor((Math.random() * 1000000) + 1)
+                    })
+                    stack = []
+                    found = false
+                }
+            } else { found = true }
+        } else {
+            if (found) { stack.push(char) } else { }
+        }
+    }
+    // console.log(stack, phrases, found)
+    return phrases
+}
+
+let getDisplayMath = (text) => {
+    let displayMath = [...text.matchAll(/\$\$(.*?)\$\$/ig)];
+    let phrases = []
+    displayMath.map(itm => {
+        let origText = itm[1]
+        let escText = escapeMath(origText)
+        phrases.push({
+            id: "displayMath" + Math.floor((Math.random() * 1000000) + 1),
+            type: "displayMath",
+            origText: origText,
+            escText: escText
+        })
+    })
+    return phrases
+}
+
+
 let textParser = {
     "text": (itm, options = {}) => {
-        //console.log(itm.text)
-        let txt = itm.text
+        let text = itm.text
+        let dMath = getDisplayMath(text)
+        dMath.map(math => { text = text.replace(math.origText, math.id) })
+        let iMaths = getInlineMath(text)
+        iMaths.map(math => { text = text.replace(math.origText, math.id) })
+        let txt = text
             .replace("\\", "\\textbackslash ")
             .replace(/&amp;/g, "\\&")
             .replace(/&lt;/gm, `\\textless `)
@@ -22,8 +87,8 @@ let textParser = {
             .replace("~", "\\textasciitilde ")
             .replace("#", "\\#")
             .replace("_", "\\_")
-        //   $ 
-        // console.log(txt)
+        iMaths.map(math => { txt = txt.replace(math.id, math.escText) })
+        dMath.map(math => { txt = txt.replace(math.id, math.escText) })
         return { text: txt }
     },
     "strong": (itm, options = {}) => {
@@ -46,14 +111,14 @@ let textParser = {
     },
     "image": (itm, options = {}) => {
         let imgName = genImageName(itm.text)
-        let fig = `\\includegraphics[max size={\\textwidth}{\\textheight}]{${imgName}}`
-        let imgLink  = itm.href
-        if(imgLink.charAt(0)=="/" && options.baseImgUrl){
-            imgLink = options.baseImgUrl+imgLink
+        let fig = `\\includegraphics[max size={0.8\\textwidth}{\\textheight}]{${imgName}}`
+        let imgLink = itm.href
+        if (imgLink.charAt(0) == "/" && options.baseImgUrl) {
+            imgLink = options.baseImgUrl + imgLink
         }
         return {
             text: fig,
-            image: {link: imgLink,name: imgName}
+            image: { link: imgLink, name: imgName }
         }
     },
     "escape": (itm, options = {}) => {
@@ -63,18 +128,6 @@ let textParser = {
         // todo modify this
         return { text: `${itm.text}` }
     },
-    // "displayMath": (itm, options = {}) => {
-    //     let txt = itm.text
-    //         .replace(/&amp;/g, "&")
-    //         .replace(/&lt;/gm, `<`)
-    //         .replace(/&gt;/gm, `>`)
-    //         .replace(/&quot;/g, '"')
-    //         .replace(/&apos;/g, "'")
-    //         .replace(/&#39;/g, "'")
-    //     console.log(txt)
-    //     return { text: txt }
-    //     // return itm.text
-    // },
     "br": (itm, options = {}) => {
         return ``
     }
@@ -85,10 +138,10 @@ let parsers = {
         let title = `section`
         if (itm.depth == 2) { title = 'sub' + title }
         else if (itm.depth >= 3) { title = 'subsub' + title }
-        return { text: `\\${title}{${itm.text}} ` }
+        return { text: `\\${title}{${itm.text}} \n ` }
     },
     paragraph: (itm, options = {}) => {
-        let para = itm.tokens.map(it => { return textParser[it.type](it,options) })
+        let para = itm.tokens.map(it => { return textParser[it.type](it, options) })
         // console.log(para)
         let pText = []
         let imgArr = []
@@ -101,7 +154,7 @@ let parsers = {
     list: (itm, options = {}) => {
         let images = []
         let processTextTokens = (tkns) => {
-            let pa = tkns.map(tk => { return textParser[tk.type](tk,options) })
+            let pa = tkns.map(tk => { return textParser[tk.type](tk, options) })
             pa.map(p => { if (p.image) { images = images.concat(p.image) } })
             return pa.map(p => { return p.text }).join("")
         }
@@ -110,7 +163,7 @@ let parsers = {
             if (obj.ordered) { command = "enumerate" }
             let steps = ``
             obj.items.map(item => {
-                let currItem = `  \\item `
+                let currItem = `\n  \\item `
                 item.tokens.map(tkn => {
                     if (tkn.type == "text") {
                         // normal text , include it after the item keyword
@@ -122,53 +175,24 @@ let parsers = {
                         currItem += "\n" + subList
                     }
                 })
-                steps += `${currItem} \n`
+                steps += `${currItem}`
             })
-            let str = ["\\begin{" + command + "}", steps, "\\end{" + command + "}"].join("\n")
+            let str = ["\n\\begin{" + command + "}", steps, "\\end{" + command + "}", "\n"].join("\n")
             return str
         }
         let list = processList(itm)
-        return { text: list, images: images }
+        return { text: list + "\n", images: images }
     },
     blockquote: (itm, options = {}) => {
-        return { text: ["\\begin{displayquote}", '``' + itm.text + '``', "\\end{displayquote}"].join("\n") }
+        return { text: ["\\begin{displayquote}", '``' + itm.text + '``', "\\end{displayquote}", "\n"].join("\n") }
     },
     code: (itm, options = {}) => {
         return { text: ["\\begin{lstlisting}", itm.text, "\\end{lstlisting}"].join("\n") }
     },
     space: (itm, options = {}) => {
         return { text: `\\newline` }
-    },
-    displayMath: (itm, options = {}) => {
-        let txt = itm.text
-            .replace(/&amp;/g, "&")
-            .replace(/&lt;/gm, `<`)
-            .replace(/&gt;/gm, `>`)
-            .replace(/&quot;/g, '"')
-            .replace(/&apos;/g, "'")
-            .replace(/&#39;/g, "'")
-        console.log(txt)
-        return { text: `$$${txt}$$` }
-        // return itm.text
-    },
-}
-
-const tokenizer = {
-    paragraph(src) {
-      const match = src.match(/\$\$(.*?)\$\$/);
-      if (match) {
-        return {
-          type: 'displayMath',
-          raw: match[0],
-          text: match[1].trim()
-        };
-      }
-      // return false to use original  tokenizer
-      return false;
     }
-  };
-
-marked.use({ tokenizer });
+}
 
 let getRequiredPackages = () => {
     let packagesRequired = [
@@ -181,22 +205,20 @@ let getRequiredPackages = () => {
     }` },
         { name: "{listings}" },
         { name: "{csquotes}" },
-        { name: "{graphicx}" , config:`\\graphicspath{ {./images/} }`},
-        {name:"[export]{adjustbox}"}
+        { name: "{graphicx}", config: `\\graphicspath{ {./images/} }` },
+        { name: "[export]{adjustbox}" }
     ]
     let packages = packagesRequired.map(pkg => {
         let pk = `\\usepackage${pkg.name} \n`
-        if (pkg.config) {
-            pk += "\n" + pkg.config + "\n"
-        }
+        if (pkg.config) {pk += "\n" + pkg.config + "\n"}
         return pk
     }).join("")
     return packages
 }
 
-let getMDToken = (mdString)=>{
+let getMDToken = (mdString) => {
     return marked.lexer(mdString)
-} 
+}
 
 let toLatex = (mdString, options = {}) => {
     try {
@@ -204,21 +226,14 @@ let toLatex = (mdString, options = {}) => {
         // console.log(JSON.stringify(tokens,null,2))
         let parts = []
         tokens.map(item => {
-            // console.log(item.type)
-            if (parsers[item.type]) {
-                parts.push(parsers[item.type](item,options))
-            }
+            if (parsers[item.type]) { parts.push(parsers[item.type](item, options)) }
         })
         // console.log(parts)
         let imgArr = []
         //  console.log(parts)
-        parts.map(pt => {
-            if (pt.images) {
-                imgArr = imgArr.concat(pt.images)
-            }
-        })
+        parts.map(pt => { if (pt.images) { imgArr = imgArr.concat(pt.images) } })
         let data = {
-            content: parts.map(pt => { return pt.text }).join("\n"),
+            content: parts.map(pt => { return pt.text }).join(""),
             packages: getRequiredPackages(),
             images: imgArr
         }
